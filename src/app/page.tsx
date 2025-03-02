@@ -113,17 +113,47 @@ export default function Home() {
   const generateAdvice = () => {
     setIsLoading(true);
 
-    // Simulate loading for effect
-    setTimeout(() => {
-      const randomAdvice =
-        ADVICE_LIST[Math.floor(Math.random() * ADVICE_LIST.length)];
-      const finalAdvice = problem.trim()
-        ? { ...randomAdvice, problem: problem }
-        : randomAdvice;
+    // If no problem is provided, use a random one from the list
+    const problemToSend = problem.trim()
+      ? problem
+      : CUSTOM_PROBLEMS[Math.floor(Math.random() * CUSTOM_PROBLEMS.length)];
 
-      setAdvice(finalAdvice);
-      setIsLoading(false);
-    }, 1500);
+    fetch("/api/generate-advice", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ problem: problemToSend }),
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Failed to generate advice");
+        }
+        return response.json();
+      })
+      .then((data) => {
+        setAdvice({
+          problem: problemToSend,
+          advice: data.advice,
+          expert: data.expert,
+          image:
+            data.image ||
+            "https://images.unsplash.com/photo-1579389083395-f9c1b67f3b83?q=80&w=500&auto=format",
+        });
+      })
+      .catch((error) => {
+        console.error("Error generating advice:", error);
+        // Fallback to random advice in case of error
+        const randomAdvice =
+          ADVICE_LIST[Math.floor(Math.random() * ADVICE_LIST.length)];
+        const finalAdvice = problem.trim()
+          ? { ...randomAdvice, problem: problem }
+          : randomAdvice;
+        setAdvice(finalAdvice);
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
   };
 
   const getRandomPlaceholder = () => {
